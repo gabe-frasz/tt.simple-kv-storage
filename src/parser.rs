@@ -31,14 +31,14 @@ pub fn parse(input: &str) -> Result<Command, DatabaseError> {
     let mut tokens = input.split_whitespace();
     let command_name = tokens
         .next()
-        .ok_or_else(|| DatabaseError::Syntax("nenhum comando fornecido".to_string()))?;
+        .ok_or_else(|| DatabaseError::Syntax("no command provided".to_string()))?;
 
     let command = match command_name.to_ascii_uppercase().as_str() {
         "ADD" => {
             let key = get_key(&mut tokens)?;
             let value = tokens.collect::<Vec<&str>>().join(" ");
             if value.is_empty() {
-                return Err(DatabaseError::Syntax("valor não informado".to_string()));
+                return Err(DatabaseError::Syntax("value not provided".to_string()));
             }
             return Ok(Command::Add { key, value });
         }
@@ -47,12 +47,12 @@ pub fn parse(input: &str) -> Result<Command, DatabaseError> {
             Command::Get { key }
         }
         "EXIT" => Command::Exit,
-        other => return Err(DatabaseError::Syntax(format!("comando desconhecido: {other}"))),
+        other => return Err(DatabaseError::Syntax(format!("unknown command: {other}"))),
     };
 
     if tokens.next().is_some() {
         return Err(DatabaseError::Syntax(
-            "número excessivo de argumentos".to_string(),
+            "too many arguments".to_string(),
         ));
     }
 
@@ -62,7 +62,7 @@ pub fn parse(input: &str) -> Result<Command, DatabaseError> {
 fn get_key(tokens: &mut SplitWhitespace) -> Result<String, DatabaseError> {
     let key = tokens
         .next()
-        .ok_or_else(|| DatabaseError::Syntax("chave não informada".to_string()))?;
+        .ok_or_else(|| DatabaseError::Syntax("key not provided".to_string()))?;
     Ok(key.to_string())
 }
 
@@ -93,15 +93,15 @@ mod tests {
     fn test_parse_add_errors() {
         assert_eq!(
             parse("ADD").unwrap_err(),
-            DatabaseError::Syntax("chave não informada".to_string())
+            DatabaseError::Syntax("key not provided".to_string())
         );
         assert_eq!(
             parse("ADD key").unwrap_err(),
-            DatabaseError::Syntax("valor não informado".to_string())
+            DatabaseError::Syntax("value not provided".to_string())
         );
         assert_eq!(
             parse("ADD key    ").unwrap_err(),
-            DatabaseError::Syntax("valor não informado".to_string())
+            DatabaseError::Syntax("value not provided".to_string())
         );
     }
 
@@ -122,11 +122,11 @@ mod tests {
     fn test_parse_get_errors() {
         assert_eq!(
             parse("GET").unwrap_err(),
-            DatabaseError::Syntax("chave não informada".to_string())
+            DatabaseError::Syntax("key not provided".to_string())
         );
         assert_eq!(
             parse("GET key extra").unwrap_err(),
-            DatabaseError::Syntax("número excessivo de argumentos".to_string())
+            DatabaseError::Syntax("too many arguments".to_string())
         );
     }
 
@@ -136,7 +136,7 @@ mod tests {
         assert!(matches!(parse("exit").unwrap(), Command::Exit));
         assert_eq!(
             parse("EXIT extra").unwrap_err(),
-            DatabaseError::Syntax("número excessivo de argumentos".to_string())
+            DatabaseError::Syntax("too many arguments".to_string())
         );
     }
 
@@ -144,15 +144,15 @@ mod tests {
     fn test_parse_empty_and_unknown() {
         assert_eq!(
             parse("").unwrap_err(),
-            DatabaseError::Syntax("nenhum comando fornecido".to_string())
+            DatabaseError::Syntax("no command provided".to_string())
         );
         assert_eq!(
             parse("   \t   ").unwrap_err(),
-            DatabaseError::Syntax("nenhum comando fornecido".to_string())
+            DatabaseError::Syntax("no command provided".to_string())
         );
         assert_eq!(
             parse("INVALID_CMD key").unwrap_err(),
-            DatabaseError::Syntax("comando desconhecido: INVALID_CMD".to_string())
+            DatabaseError::Syntax("unknown command: INVALID_CMD".to_string())
         );
     }
 

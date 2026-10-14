@@ -1,6 +1,6 @@
 local function validate_cpf(cpf)
 	if not cpf:match("^%d%d%d%d%d%d%d%d%d%d%d$") then
-		error("CPF deve conter exatamente 11 dígitos numéricos sem formatação")
+		error("CPF must contain exactly 11 numeric digits without formatting")
 	end
 
 	local all_same = true
@@ -11,7 +11,7 @@ local function validate_cpf(cpf)
 		end
 	end
 	if all_same then
-		error("CPF inválido: dígitos repetidos")
+		error("Invalid CPF: repeated digits")
 	end
 
 	local digits = {}
@@ -26,7 +26,7 @@ local function validate_cpf(cpf)
 	local rest1 = sum1 % 11
 	local dig1 = rest1 < 2 and 0 or (11 - rest1)
 	if dig1 ~= digits[10] then
-		error("Dígito verificador do CPF inválido")
+		error("Invalid CPF check digit")
 	end
 
 	local sum2 = 0
@@ -36,7 +36,7 @@ local function validate_cpf(cpf)
 	local rest2 = sum2 % 11
 	local dig2 = rest2 < 2 and 0 or (11 - rest2)
 	if dig2 ~= digits[11] then
-		error("Dígito verificador do CPF inválido")
+		error("Invalid CPF check digit")
 	end
 end
 
@@ -49,7 +49,7 @@ return {
 
 			local existing_key = ctx.get_key_by_value(ctx.value)
 			if existing_key and existing_key ~= ctx.key then
-				error("CPF já cadastrado na chave " .. existing_key)
+				error("CPF already registered under key " .. existing_key)
 			end
 		end
 	end,
@@ -60,4 +60,3 @@ return {
 		end
 	end,
 }
-

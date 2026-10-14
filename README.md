@@ -1,202 +1,196 @@
-# EP 1 - Banco de Dados: Rust + Lua
+# EP 1 - Database: Rust + Lua
 
-Esse repositório contém o código de um banco de dados chave-valor em memória
-escrito em **Rust**, com extensões/plugins em **Lua**.
+This repository contains the code for an in-memory key-value database written
+in **Rust**, with extensions/plugins in **Lua**.
 
-O motor Rust é agnóstico a regras específicas. Todas as validações, formatações
-e consultas adicionais de dados durante a execução são gerenciadas pelas extensões
-contidas na pasta `extensions/`, carregadas dinamicamente na inicialização da
-CLI.
+The Rust engine is agnostic to specific rules. All validations, formatting,
+and additional data queries during execution are managed by the extensions
+contained in the `extensions/` folder, loaded dynamically at CLI startup.
 
-## Integrantes
+## How to Build and Run
 
-- Emanuelly Gomes
-- Gabriel Frasão
-
-## Como Compilar e Executar
-
-### Requisitos
+### Requirements
 
 - [Rust](https://www.rust-lang.org/).
 
-### Compilação
+### Building
 
-Na raiz do repositório, execute:
+At the repository root, run:
 
 ```bash
 cargo build --release
 ```
 
-O executável otimizado será gerado em `./target/release/banco-memoria`.
+The optimized executable will be generated at `./target/release/banco-memoria`.
 
-### Execução Interativa
+### Interactive Execution
 
-Para abrir a interface interativa:
+To open the interactive interface:
 
 ```bash
 cargo run --release
 ```
 
-Ou executando diretamente o binário compilado anteriormente:
+Or by directly running the previously compiled binary:
 
 ```bash
 ./target/release/banco-memoria
 ```
 
-**Exemplo de uso interativo:**
+**Interactive usage example:**
 
 ```text
 $ ./target/release/banco-memoria
-> ADD cpf_zezinho 12345678909
+> ADD cpf_joe 12345678909
 OK
-> GET cpf_zezinho
+> GET cpf_joe
 123.456.789-09
-> GET chave_inexistente
-ERRO: chave inexistente
+> GET nonexistent_key
+ERROR: key not found
 > EXIT
 $
 ```
 
-### Execução via _Pipe_
+### Execution via _Pipe_
 
-A CLI detecta se a entrada vem de um terminal interativo ou de um _pipe_.
-Quando executado via _pipe_, o prompt `> ` é omitido, mas todas as respostas
-(`OK`, valores consultados e mensagens de erro) continuam sendo emitidas,
-encerrando o processo ao atingir o fim do arquivo (EOF):
+The CLI detects whether input comes from an interactive terminal or a _pipe_.
+When run via _pipe_, the `> ` prompt is omitted, but all responses
+(`OK`, queried values, and error messages) are still emitted,
+with the process exiting on end-of-file (EOF):
 
 ```bash
-cat lista-de-comandos.txt | ./target/release/banco-memoria
+cat command-list.txt | ./target/release/banco-memoria
 ```
 
-## Como Adicionar uma Extensão
+## How to Add an Extension
 
-O sistema descobre automaticamente as extensões no diretório `extensions/` na inicialização.
+The system automatically discovers extensions in the `extensions/` directory at startup.
 
-As extensões são simplesmente arquivos `.lua` que devem retornar uma tabela com
-os seguintes campos:
+Extensions are simply `.lua` files that must return a table with
+the following fields:
 
 ```lua
 return {
-    -- Prefixo da chave que a extensão vai monitorar (opcional)
-    -- Caso não seja informado, o nome do arquivo é usado por padrão + `_`
-    -- ex: extensions/algumnome.lua -> prefixo = "algumnome_"
-    prefix = "meuprefixo_",
+    -- Key prefix the extension will monitor (optional)
+    -- If not provided, the file name is used by default + `_`
+    -- e.g.: extensions/somename.lua -> prefix = "somename_"
+    prefix = "myprefix_",
 
-    -- Função executada antes da operação no banco (opcional)
+    -- Function executed before the database operation (optional)
     pre_hook = function(ctx)
         -- ...
     end,
 
-    -- Função executada após a operação no banco (opcional)
+    -- Function executed after the database operation (optional)
     post_hook = function(ctx)
         -- ...
     end,
 }
 ```
 
-### O Objeto de Contexto (`ctx`)
+### The Context Object (`ctx`)
 
-Tanto `pre_hook` quanto `post_hook` recebem um objeto de contexto (`ctx`), que
-é uma tabela Lua com os seguintes campos e métodos:
+Both `pre_hook` and `post_hook` receive a context object (`ctx`), which
+is a Lua table with the following fields and methods:
 
-| Campo / Método              | Tipo       | Mutável | Descrição                                                                                                                  |
-| --------------------------- | ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `ctx.command`               | `string`   | ❌      | Nome do comando em execução (`"ADD"` ou `"GET"`).                                                                          |
-| `ctx.key`                   | `string`   | ❌      | Chave fornecida pelo usuário na operação.                                                                                  |
-| `ctx.value`                 | `string`   | ✅      | Valor passado pelo usuário para gravação (presente somente no `ADD`). Pode ser alterado pela extensão.                     |
-| `ctx.result`                | `string`   | ✅      | Valor retornado do banco (presente no `GET`). Pode ser alterado pela extensão.                                             |
-| `ctx.get(key)`              | `function` | ❌      | **Consulta por chave**: consulta o banco em tempo real e retorna o valor de `key` (ou `nil` se não existir).               |
-| `ctx.get_key_by_value(val)` | `function` | ❌      | **Consulta reversa**: consulta o banco em tempo real e retorna a chave que contém o valor `val` (ou `nil` se não existir). |
+| Field / Method            | Type       | Mutable | Description                                                                                                              |
+| ------------------------- | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `ctx.command`             | `string`   | ❌      | Name of the running command (`"ADD"` or `"GET"`).                                                                       |
+| `ctx.key`                 | `string`   | ❌      | Key provided by the user in the operation.                                                                               |
+| `ctx.value`               | `string`   | ✅      | Value passed by the user for writing (present only in `ADD`). Can be changed by the extension.                           |
+| `ctx.result`              | `string`   | ✅      | Value returned from the database (present in `GET`). Can be changed by the extension.                                    |
+| `ctx.get(key)`            | `function` | ❌      | **Lookup by key**: queries the database in real time and returns the value of `key` (or `nil` if it does not exist).     |
+| `ctx.get_key_by_value(val)` | `function` | ❌    | **Reverse lookup**: queries the database in real time and returns the key holding the value `val` (or `nil` if none).    |
 
-### O que a aplicação Rust espera de volta
+### What the Rust application expects back
 
-A extensão é livre para utilizar a mutabilidade dos campos como quiser (ex:
-alterar o valor antes de ser persistido no banco, formatar ou transformar dados
-antes de serem exibidos para o usuário etc.).
+The extension is free to use field mutability as it wishes (e.g.:
+changing the value before it is persisted to the database, formatting or transforming data
+before it is displayed to the user, etc.).
 
-1. **Em caso de Sucesso**:
-   - No `pre_hook`: O motor lê `ctx.value`. Se a extensão alterou esse campo, o
-     novo valor é o que será de fato persistido no banco.
-   - No `post_hook`: O motor lê `ctx.result`. Se alterado pela extensão, o novo
-     valor é o que será exibido para o usuário na tela.
-2. **Em caso de Erro**:
-   - Se os dados forem inválidos ou uma regra de negócio for violada, a
-     extensão deve invocar `error("motivo")`.
-   - O motor Rust intercepta o erro do Lua, exibe na tela uma única linha no
-     formato `ERRO: {motivo}` e a operação é abortada (ou seja, caso o erro
-     seja disparado no `pre_hook`, nada é alterado no banco de dados).
+1. **On Success**:
+   - In `pre_hook`: The engine reads `ctx.value`. If the extension changed this field, the
+     new value is what will actually be persisted to the database.
+   - In `post_hook`: The engine reads `ctx.result`. If changed by the extension, the new
+     value is what will be displayed to the user on screen.
+2. **On Error**:
+   - If the data is invalid or a business rule is violated, the
+     extension must invoke `error("reason")`.
+   - The Rust engine intercepts the Lua error, displays a single line on screen in
+     the format `ERROR: {reason}` and the operation is aborted (i.e., if the error
+     is raised in `pre_hook`, nothing is changed in the database).
 
-## Consulta no Banco a partir da Extensão e Resolução de Concorrência no `ADD`
+## Database Querying from the Extension and Concurrency Resolution in `ADD`
 
-O enunciado do EP propõe o seguinte desafio:
+The EP statement poses the following challenge:
 
-> _"No instante em que a extensão faz a pergunta, o comando ADD já está no meio
-> de uma operação sobre esse mesmo banco. Resolver isso é parte do exercício."_
+> _"At the moment the extension asks the question, the ADD command is already in the middle
+> of an operation on that same database. Solving this is part of the exercise."_
 
-A solução adotada se baseia em:
+The adopted solution is based on:
 
-1. **Compartilhamento com Contagem de Referências e Empréstimo Interior**:
-   - A instância única do [`Storage`](src/storage.rs) é envolvida em um `Rc<RefCell<Storage>>`.
-   - Isso faz com que o Rust e as funções de callback registradas no Lua
-     compartilhem o acesso ao mesmo banco sem copiar toda a base de dados.
-2. **Separação Rígida de Fases (Validação -> Mutação)**:
-   - **Fase 1 (Validação e Consulta - `trigger_pre_hook`)**: O comando `ADD` é
-     recebido, mas o dado ainda não foi gravado. O `ExtensionManager` cria
-     o contexto Lua injetando funções que utilizam empréstimo
-     compartilhado. Quando a extensão de CPF invoca
-     `ctx.get_key_by_value(ctx.value)`, ela consulta o banco sob demanda no
-     estado imediatamente anterior à inserção.
-   - **Fase 2 (Mutação - `storage.borrow_mut().add(key, value)`)**: Apenas se a
-     extensão concluir a validação sem erros, o empréstimo de leitura é
-     finalizado e o Rust adquire o empréstimo mutável exclusivo
-     (`borrow_mut()`), persistindo os dados.
-   - Se a validação do Lua falhar, a Fase 2 nunca é executada, garantindo
-     integridade transacional sem violar o modelo de segurança de memória do Rust.
+1. **Reference-Counted Sharing with Interior Mutability**:
+   - The single [`Storage`](src/storage.rs) instance is wrapped in an `Rc<RefCell<Storage>>`.
+   - This makes Rust and the callback functions registered in Lua
+     share access to the same database without copying the whole dataset.
+2. **Strict Phase Separation (Validation -> Mutation)**:
+   - **Phase 1 (Validation and Query - `trigger_pre_hook`)**: The `ADD` command is
+     received, but the data has not been written yet. The `ExtensionManager` creates
+     the Lua context by injecting functions that use shared
+     borrowing. When the CPF extension invokes
+     `ctx.get_key_by_value(ctx.value)`, it queries the database on demand in
+     the state immediately prior to insertion.
+   - **Phase 2 (Mutation - `storage.borrow_mut().add(key, value)`)**: Only if the
+     extension completes validation without errors is the read borrow
+     released and Rust acquires the exclusive mutable borrow
+     (`borrow_mut()`), persisting the data.
+   - If the Lua validation fails, Phase 2 is never executed, guaranteeing
+     transactional integrity without violating Rust's memory safety model.
 
-### Busca Reversa em $O(1)$
+### Reverse Lookup in $O(1)$
 
-Para garantir que a consulta por valor exigida pela extensão do CPF não
-se tornar $O(n)$ de acordo com o crescimento do banco, o `Storage` foi
-projetado com um índice invertido:
+To ensure the value lookup required by the CPF extension does not
+become $O(n)$ as the database grows, `Storage` was
+designed with an inverted index:
 
 ```rust
 pub struct Storage {
-    data: HashMap<String, String>,                     // chave -> valor (O(1))
-    value_to_keys: HashMap<String, HashSet<String>>,   // valor -> conjunto de chaves (O(1))
+    data: HashMap<String, String>,                     // key -> value (O(1))
+    value_to_keys: HashMap<String, HashSet<String>>,   // value -> set of keys (O(1))
 }
 ```
 
-Isso permite a busca contante da chave de um valor no método
-`get_key_by_value`, permitindo que vários registros compartilhem valores
-iguais mantendo a verificação de unicidade em tempo constante.
+This allows constant-time lookup of a value's key in the
+`get_key_by_value` method, allowing multiple records to share equal values
+while keeping the uniqueness check in constant time.
 
-## Extensão de Tema Livre: Manipulador de JSON (`json.lua`)
+## Free-Theme Extension: JSON Handler (`json.lua`)
 
-Além das extensões obrigatórias de CPF e Data, foi desenvolvida a extensão
-[`extensions/json.lua`](extensions/json.lua) para o prefixo `json_`.
+In addition to the mandatory CPF and Date extensions, the
+[`extensions/json.lua`](extensions/json.lua) extension was developed for the `json_` prefix.
 
-### O que ela faz
+### What it does
 
-- **Inicialização / Sobrescrita no `ADD`**: Permite cadastrar objetos JSON
-  planos (`{"campo": valor, ...}`) com suporte nativo aos tipos básicos do
-  JSON:
-  - Strings (ex.: `"Alice"`, `"Sao Paulo"`).
-  - Números inteiros ou decimais (ex.: `30`, `-5.5`, `3.14`).
-  - Booleanos (`true`, `false`).
-- **Atualização Parcial Atômica e Idempotente (*Patching*) no `ADD`**:
-  - `@campo=valor`: Atualiza ou define um campo específico no documento JSON (ex.: `ADD json_user @age=31`).
-  - `+@campo=valor`: Adiciona ou define um campo de forma idempotente (ex.:
-    `ADD json_user +@city="Sao Paulo"`). Se a chave ainda não existir no banco,
-    inicializa o documento diretamente.
-  - `-@campo`: Remove um campo existente de forma idempotente (ex.: `ADD
-    json_user -@age`). Se o campo não existir (ou já tiver sido removido), a
-    operação não gera erro e mantém o estado consistente.
-- **Armazenamento Canônico**: O dado é persistido no banco em JSON minificado
-  determinístico com chaves ordenadas alfabeticamente.
-- **Formatação de Tabela no `GET`**: No `GET`, a extensão renderiza uma tabela ASCII formatada com colunas `CAMPO` e `VALOR`, bordas e chaves ordenadas:
+- **Initialization / Overwrite on `ADD`**: Allows registering flat JSON
+  objects (`{"field": value, ...}`) with native support for the basic JSON
+  types:
+  - Strings (e.g.: `"Alice"`, `"Sao Paulo"`).
+  - Integer or decimal numbers (e.g.: `30`, `-5.5`, `3.14`).
+  - Booleans (`true`, `false`).
+- **Atomic Idempotent Partial Update (*Patching*) on `ADD`**:
+  - `@field=value`: Updates or sets a specific field in the JSON document (e.g.: `ADD json_user @age=31`).
+  - `+@field=value`: Adds or sets a field idempotently (e.g.:
+    `ADD json_user +@city="Sao Paulo"`). If the key does not exist yet in the database,
+    it initializes the document directly.
+  - `-@field`: Removes an existing field idempotently (e.g.: `ADD
+    json_user -@age`). If the field does not exist (or has already been removed), the
+    operation does not raise an error and keeps the state consistent.
+- **Canonical Storage**: Data is persisted in the database as deterministic minified JSON
+  with keys sorted alphabetically.
+- **Table Formatting on `GET`**: On `GET`, the extension renders a formatted ASCII table with `FIELD` and `VALUE` columns, borders, and sorted keys:
   ```text
   +--------+-------------+
-  | CAMPO  | VALOR       |
+  | FIELD  | VALUE       |
   +--------+-------------+
   | active | true        |
   | age    | 31          |
@@ -205,47 +199,47 @@ Além das extensões obrigatórias de CPF e Data, foi desenvolvida a extensão
   +--------+-------------+
   ```
 
-### Diferencial Técnico (O que exercita de novo)
+### Technical Differentiator (What it exercises that is new)
 
-1. **Consulta sob Demanda com `ctx.get(ctx.key)` no `ADD`**: Para realizar o
-   *patch* parcial, a extensão consulta o banco em tempo real durante a
-   gravação para recuperar o estado anterior do documento, aplica a alteração
-   em memória no Lua e persiste o novo JSON serializado. Diferente do CPF (que
-   usa consulta reversa apenas para validação de unicidade), a extensão JSON
-   usa a consulta direta para **mutação e composição de estado**.
-2. **Manipulação Heterogênea de Tipos e Parser em Lua Puro**: Implementado
-   inteiramente sem bibliotecas externas, realizando validação sintática,
-   tipagem e serialização de estruturas compostas.
-3. **Casos de Teste Dedicados**: Versionado no arquivo [`casos_teste_json.txt`](casos_teste_json.txt).
+1. **On-Demand Query with `ctx.get(ctx.key)` in `ADD`**: To perform the
+   partial *patch*, the extension queries the database in real time during
+   writing to retrieve the previous state of the document, applies the change
+   in memory in Lua, and persists the new serialized JSON. Unlike CPF (which
+   uses reverse lookup only for uniqueness validation), the JSON extension
+   uses direct lookup for **state mutation and composition**.
+2. **Heterogeneous Type Handling and Parser in Pure Lua**: Implemented
+   entirely without external libraries, performing syntactic validation,
+   typing, and serialization of composite structures.
+3. **Dedicated Test Cases**: Versioned in the [`casos_teste_json.txt`](casos_teste_json.txt) file.
 
-## Módulos do Projeto e Dependências
+## Project Modules and Dependencies
 
-O único crate utilizado é o `mlua` e este é importado exclusivamente no módulo
-responsável pelas extensões (`src/extension_manager.rs`). Nenhum outro módulo
-tem conhecimento de que extensões em Lua existem.
+The only crate used is `mlua`, and it is imported exclusively in the module
+responsible for extensions (`src/extension_manager.rs`). No other module
+knows that Lua extensions exist.
 
-### Módulos e Responsabilidades
+### Modules and Responsibilities
 
-- **[`src/main.rs`](src/main.rs)**: Ponto de entrada do executável. Inicializa
-  o armazenamento e o gerenciador de extensões, executa o loop e despacha
-  a execução dos comandos.
-- **[`src/error.rs`](src/error.rs)**: Responsabilidade de tipagem e estruturação de erros.
-  Define o enum `DatabaseError` e padroniza a formatação `ERRO: {motivo}` via trait `Display`.
-- **[`src/io.rs`](src/io.rs)**: Responsabilidade de entrada e saída. Detecta terminais
-  interativos, exibe prompts e formata as saídas de sucesso (`OK`), valores
-  recuperados e mensagens de erro.
-- **[`src/parser.rs`](src/parser.rs)**: Responsável pela interpretação dos
-  comandos do usuário. Processa linhas de entrada de texto puro e as transforma
-  no enum `Command` ou retorna erros sintáticos `DatabaseError::Syntax`.
-- **[`src/storage.rs`](src/storage.rs)**: Armazenamento da aplicação.
-  Gerencia o mapa de dados em memória e o índice secundário reverso
+- **[`src/main.rs`](src/main.rs)**: Executable entry point. Initializes
+  storage and the extension manager, runs the loop, and dispatches
+  command execution.
+- **[`src/error.rs`](src/error.rs)**: Error typing and structuring responsibility.
+  Defines the `DatabaseError` enum and standardizes the `ERROR: {reason}` formatting via the `Display` trait.
+- **[`src/io.rs`](src/io.rs)**: Input and output responsibility. Detects interactive
+  terminals, displays prompts, and formats success (`OK`) outputs, retrieved
+  values, and error messages.
+- **[`src/parser.rs`](src/parser.rs)**: Responsible for interpreting
+  user commands. Processes plain-text input lines and turns them
+  into the `Command` enum or returns syntactic `DatabaseError::Syntax` errors.
+- **[`src/storage.rs`](src/storage.rs)**: Application storage.
+  Manages the in-memory data map and the reverse secondary index
   `value_to_keys`.
-- **[`src/extension_manager.rs`](src/extension_manager.rs)**: Responsabilidade
-  da ponte com o Lua. Gerencia a VM do Lua, carrega dinamicamente as extensões
-  do diretório `extensions/`, constrói os objetos de contexto e despacha os
-  hooks `pre_hook` e `post_hook`.
+- **[`src/extension_manager.rs`](src/extension_manager.rs)**: Bridge
+  with Lua responsibility. Manages the Lua VM, dynamically loads extensions
+  from the `extensions/` directory, builds context objects, and dispatches the
+  `pre_hook` and `post_hook` hooks.
 
-### Diagrama de Dependências
+### Dependency Diagram
 
 ```mermaid
 graph TD

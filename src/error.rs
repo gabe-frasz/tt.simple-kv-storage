@@ -11,7 +11,7 @@ pub enum DatabaseError {
 impl DatabaseError {
     pub fn message(&self) -> &str {
         match self {
-            DatabaseError::NotFound => "chave inexistente",
+            DatabaseError::NotFound => "key not found",
             DatabaseError::Syntax(msg) => msg.as_str(),
             DatabaseError::Extension(msg) => msg.as_str(),
             DatabaseError::Io(msg) => msg.as_str(),
@@ -21,7 +21,7 @@ impl DatabaseError {
 
 impl fmt::Display for DatabaseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "ERRO: {}", self.message())
+        write!(f, "ERROR: {}", self.message())
     }
 }
 
@@ -39,25 +39,25 @@ mod tests {
 
     #[test]
     fn test_display_format() {
-        assert_eq!(DatabaseError::NotFound.to_string(), "ERRO: chave inexistente");
+        assert_eq!(DatabaseError::NotFound.to_string(), "ERROR: key not found");
         assert_eq!(
-            DatabaseError::Syntax("comando desconhecido: FOO".to_string()).to_string(),
-            "ERRO: comando desconhecido: FOO"
+            DatabaseError::Syntax("unknown command: FOO".to_string()).to_string(),
+            "ERROR: unknown command: FOO"
         );
         assert_eq!(
-            DatabaseError::Extension("CPF inválido".to_string()).to_string(),
-            "ERRO: CPF inválido"
+            DatabaseError::Extension("invalid CPF".to_string()).to_string(),
+            "ERROR: invalid CPF"
         );
         assert_eq!(
-            DatabaseError::Io("falha de leitura".to_string()).to_string(),
-            "ERRO: falha de leitura"
+            DatabaseError::Io("read failure".to_string()).to_string(),
+            "ERROR: read failure"
         );
     }
 
     #[test]
     fn test_from_io_error() {
-        let io_err = std::io::Error::new(std::io::ErrorKind::BrokenPipe, "pipe quebrado");
+        let io_err = std::io::Error::new(std::io::ErrorKind::BrokenPipe, "broken pipe");
         let db_err: DatabaseError = io_err.into();
-        assert_eq!(db_err, DatabaseError::Io("pipe quebrado".to_string()));
+        assert_eq!(db_err, DatabaseError::Io("broken pipe".to_string()));
     }
 }

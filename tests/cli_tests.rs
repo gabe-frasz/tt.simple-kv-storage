@@ -12,18 +12,18 @@ fn run_pipeline(commands: &[&str]) -> Vec<String> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .expect("Falha ao iniciar o processo do banco-memoria");
+        .expect("Failed to start banco-memoria process");
 
     {
-        let stdin = child.stdin.as_mut().expect("Falha ao abrir stdin");
+        let stdin = child.stdin.as_mut().expect("Failed to open stdin");
         for cmd in commands {
-            writeln!(stdin, "{cmd}").expect("Falha ao escrever no stdin");
+            writeln!(stdin, "{cmd}").expect("Failed to write to stdin");
         }
     }
 
     let output = child
         .wait_with_output()
-        .expect("Falha ao aguardar encerramento do processo");
+        .expect("Failed to wait for process exit");
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     stdout
@@ -37,37 +37,37 @@ fn run_pipeline(commands: &[&str]) -> Vec<String> {
 #[test]
 fn test_cli_pipe_basic() {
     let output = run_pipeline(&[
-        "ADD chave1 valor1",
-        "GET chave1",
-        "ADD chave1 novo_valor",
-        "GET chave1",
+        "ADD key1 value1",
+        "GET key1",
+        "ADD key1 new_value",
+        "GET key1",
         "EXIT",
     ]);
 
-    assert_eq!(output, vec!["OK", "valor1", "OK", "novo_valor"]);
+    assert_eq!(output, vec!["OK", "value1", "OK", "new_value"]);
 }
 
 #[test]
 fn test_cli_pipe_errors() {
     let output = run_pipeline(&[
-        "GET chave_inexistente",
-        "COMANDO_INVALIDO",
+        "GET nonexistent_key",
+        "INVALID_COMMAND",
         "ADD",
-        "ADD chave_sem_valor",
+        "ADD key_without_value",
         "GET",
-        "GET chave extra",
+        "GET key extra",
         "EXIT",
     ]);
 
     assert_eq!(
         output,
         vec![
-            "ERRO: chave inexistente",
-            "ERRO: comando desconhecido: COMANDO_INVALIDO",
-            "ERRO: chave não informada",
-            "ERRO: valor não informado",
-            "ERRO: chave não informada",
-            "ERRO: número excessivo de argumentos",
+            "ERROR: key not found",
+            "ERROR: unknown command: INVALID_COMMAND",
+            "ERROR: key not provided",
+            "ERROR: value not provided",
+            "ERROR: key not provided",
+            "ERROR: too many arguments",
         ]
     );
 }
@@ -75,7 +75,7 @@ fn test_cli_pipe_errors() {
 #[test]
 fn test_cli_pipe_casos_teste() {
     let content = fs::read_to_string("casos_teste.txt")
-        .expect("Não foi possível ler o arquivo casos_teste.txt");
+        .expect("Could not read casos_teste.txt file");
 
     let mut commands = Vec::new();
     let mut expected = Vec::new();
@@ -86,7 +86,7 @@ fn test_cli_pipe_casos_teste() {
             continue;
         }
 
-        if let Some(rest) = trimmed.strip_prefix("# Esperado:") {
+        if let Some(rest) = trimmed.strip_prefix("# Expected:") {
             expected.push(rest.trim().to_string());
         } else if trimmed.starts_with('#') {
             continue;
@@ -100,7 +100,7 @@ fn test_cli_pipe_casos_teste() {
     assert_eq!(
         output.len(),
         expected.len(),
-        "Quantidade de saídas ({}) difere da esperada ({})",
+        "Output count ({}) differs from expected ({})",
         output.len(),
         expected.len()
     );
@@ -108,7 +108,7 @@ fn test_cli_pipe_casos_teste() {
     for (i, (exp, act)) in expected.iter().zip(output.iter()).enumerate() {
         assert_eq!(
             exp, act,
-            "Divergência na linha {i}: esperado '{exp}', obtido '{act}'"
+            "Mismatch at line {i}: expected '{exp}', got '{act}'"
         );
     }
 }
@@ -128,7 +128,7 @@ fn test_cli_pipe_casos_teste_json() {
             continue;
         }
 
-        if let Some(rest) = trimmed.strip_prefix("# Esperado:") {
+        if let Some(rest) = trimmed.strip_prefix("# Expected:") {
             expected.push(rest.trim().to_string());
         } else if trimmed.starts_with('#') {
             continue;
@@ -142,7 +142,7 @@ fn test_cli_pipe_casos_teste_json() {
     assert_eq!(
         output.len(),
         expected.len(),
-        "Quantidade de saídas em json ({}) difere da esperada ({})",
+        "JSON output count ({}) differs from expected ({})",
         output.len(),
         expected.len()
     );
@@ -150,7 +150,7 @@ fn test_cli_pipe_casos_teste_json() {
     for (i, (exp, act)) in expected.iter().zip(output.iter()).enumerate() {
         assert_eq!(
             exp, act,
-            "Divergência em json na linha {i}: esperado '{exp}', obtido '{act}'"
+            "JSON mismatch at line {i}: expected '{exp}', got '{act}'"
         );
     }
 }
