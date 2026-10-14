@@ -28,9 +28,9 @@ pub fn print_value(value: &str) {
 pub fn print_error(message: impl std::fmt::Display) {
     let msg = message.to_string();
     let msg = msg.trim();
-    if msg.starts_with("ERRO:") {
+    if msg.starts_with("ERROR:") {
         println!("{msg}");
     } else {
-        println!("ERRO: {msg}");
+        println!("ERROR: {msg}");
     }
 }

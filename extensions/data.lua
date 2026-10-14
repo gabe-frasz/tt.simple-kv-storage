@@ -9,7 +9,7 @@ return {
   pre_hook = function(ctx)
     if ctx.command == "ADD" then
       if not ctx.value:match(RAW_MATCH) then
-        error("data deve estar no formato AAAA-MM-DD")
+        error("date must be in YYYY-MM-DD format")
       end
 
       local year, month, day = ctx.value:match(GROUP_MATCH)
@@ -19,11 +19,11 @@ return {
       DAYS_IN_MONTH[2] = is_leap_year and 29 or 28
 
       if month < 1 or month > 12 then
-        error("mês inválido")
+        error("invalid month")
       end
 
       if day < 1 or day > DAYS_IN_MONTH[month] then
-        error("dia inválido para o mês")
+        error("invalid day for month")
       end
     end
   end,

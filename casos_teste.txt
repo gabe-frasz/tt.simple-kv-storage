@@ -1,166 +1,166 @@
-# Casos de Teste - Banco de Dados Chave-Valor em Memória
-# Formato: Comandos seguidos da resposta esperada correspondente
+# Test Cases - In-Memory Key-Value Database
+# Format: Commands followed by the corresponding expected response
 
 # ---------------------------------------------------------------------------
-# 1. Comandos Básicos (Chaves sem extensões)
+# 1. Basic Commands (Keys without extensions)
 # ---------------------------------------------------------------------------
 ADD user_1 Alice
-# Esperado: OK
+# Expected: OK
 GET user_1
-# Esperado: Alice
+# Expected: Alice
 
-ADD msg_boas_vindas Ola Mundo do Banco de Dados
-# Esperado: OK
-GET msg_boas_vindas
-# Esperado: Ola Mundo do Banco de Dados
+ADD welcome_msg Hello Database World
+# Expected: OK
+GET welcome_msg
+# Expected: Hello Database World
 
-# Sobrescrita de valor na mesma chave
-ADD user_1 Roberto
-# Esperado: OK
+# Overwrite value on the same key
+ADD user_1 Robert
+# Expected: OK
 GET user_1
-# Esperado: Roberto
+# Expected: Robert
 
-# Chave inexistente
-GET chave_que_nao_existe
-# Esperado: ERRO: chave inexistente
+# Nonexistent key
+GET nonexistent_key
+# Expected: ERROR: key not found
 
 # ---------------------------------------------------------------------------
-# 2. Extensão: Validador de CPF (cpf.lua)
+# 2. Extension: CPF Validator (cpf.lua)
 # ---------------------------------------------------------------------------
-# Inserção válida e formatação no GET (000.000.000-00)
-ADD cpf_zezinho 12345678909
-# Esperado: OK
-GET cpf_zezinho
-# Esperado: 123.456.789-09
+# Valid insertion and formatting on GET (000.000.000-00)
+ADD cpf_joe 12345678909
+# Expected: OK
+GET cpf_joe
+# Expected: 123.456.789-09
 
 ADD cpf_maria 52998224725
-# Esperado: OK
+# Expected: OK
 GET cpf_maria
-# Esperado: 529.982.247-25
+# Expected: 529.982.247-25
 
-# Regra de Unicidade: Rejeita mesmo CPF em chave diferente
-ADD cpf_outro_zezinho 12345678909
-# Esperado: ERRO: CPF já cadastrado na chave cpf_zezinho
+# Uniqueness Rule: Rejects same CPF on a different key
+ADD cpf_other_joe 12345678909
+# Expected: ERROR: CPF already registered under key cpf_joe
 
-# Regra de Unicidade: Permite regravar o mesmo CPF na mesma chave
-ADD cpf_zezinho 12345678909
-# Esperado: OK
-GET cpf_zezinho
-# Esperado: 123.456.789-09
+# Uniqueness Rule: Allows rewriting the same CPF on the same key
+ADD cpf_joe 12345678909
+# Expected: OK
+GET cpf_joe
+# Expected: 123.456.789-09
 
-# Rejeição de CPFs com dígitos repetidos (mesmo que passem no módulo 11)
+# Rejection of CPFs with repeated digits (even if they pass mod 11)
 ADD cpf_rep1 11111111111
-# Esperado: ERRO: CPF inválido: dígitos repetidos
+# Expected: ERROR: Invalid CPF: repeated digits
 
 ADD cpf_rep0 00000000000
-# Esperado: ERRO: CPF inválido: dígitos repetidos
+# Expected: ERROR: Invalid CPF: repeated digits
 
 ADD cpf_rep9 99999999999
-# Esperado: ERRO: CPF inválido: dígitos repetidos
+# Expected: ERROR: Invalid CPF: repeated digits
 
-# Rejeição de dígitos verificadores inválidos
-ADD cpf_invalido 12345678900
-# Esperado: ERRO: Dígito verificador do CPF inválido
+# Rejection of invalid check digits
+ADD cpf_invalid 12345678900
+# Expected: ERROR: Invalid CPF check digit
 
-# Rejeição de CPF com pontuação na entrada (entrada deve ser estrita: apenas números)
-ADD cpf_com_pontos 123.456.789-09
-# Esperado: ERRO: CPF deve conter exatamente 11 dígitos numéricos sem formatação
+# Rejection of CPF with punctuation on input (input must be strict: digits only)
+ADD cpf_with_punctuation 123.456.789-09
+# Expected: ERROR: CPF must contain exactly 11 numeric digits without formatting
 
-# Rejeição de tamanho incorreto ou caracteres inválidos
-ADD cpf_curto 1234567890
-# Esperado: ERRO: CPF deve conter exatamente 11 dígitos numéricos sem formatação
+# Rejection of wrong length or invalid characters
+ADD cpf_short 1234567890
+# Expected: ERROR: CPF must contain exactly 11 numeric digits without formatting
 
-ADD cpf_longo 123456789012
-# Esperado: ERRO: CPF deve conter exatamente 11 dígitos numéricos sem formatação
+ADD cpf_long 123456789012
+# Expected: ERROR: CPF must contain exactly 11 numeric digits without formatting
 
-ADD cpf_letras 1234567890a
-# Esperado: ERRO: CPF deve conter exatamente 11 dígitos numéricos sem formatação
-
-# ---------------------------------------------------------------------------
-# 3. Extensão: Formatador de Data (data.lua)
-# ---------------------------------------------------------------------------
-# Inserção válida e formatação no GET (DD/MM/AAAA)
-ADD data_nascimento_zezinho 2000-01-23
-# Esperado: OK
-GET data_nascimento_zezinho
-# Esperado: 23/01/2000
-
-ADD data_evento 2024-12-31
-# Esperado: OK
-GET data_evento
-# Esperado: 31/12/2024
-
-# Ano bissexto regular (divisível por 4)
-ADD data_bissexto_2024 2024-02-29
-# Esperado: OK
-GET data_bissexto_2024
-# Esperado: 29/02/2024
-
-# Ano de século bissexto (divisível por 400)
-ADD data_bissexto_2000 2000-02-29
-# Esperado: OK
-GET data_bissexto_2000
-# Esperado: 29/02/2000
-
-# Ano de século NÃO bissexto (divisível por 100, mas não por 400) -> Rejeita
-ADD data_nao_bissexto_1900 1900-02-29
-# Esperado: ERRO: dia inválido para o mês
-
-ADD data_nao_bissexto_2100 2100-02-29
-# Esperado: ERRO: dia inválido para o mês
-
-# Ano comum (não bissexto) -> Rejeita 29 de fevereiro
-ADD data_comum_2023 2023-02-29
-# Esperado: ERRO: dia inválido para o mês
-
-# Dias fora de faixa por mês: Abril tem 30 dias -> Rejeita 31
-ADD data_abril_31 2023-04-31
-# Esperado: ERRO: dia inválido para o mês
-
-# Mês fora de faixa (13 e 00)
-ADD data_mes_13 2023-13-01
-# Esperado: ERRO: mês inválido
-
-ADD data_mes_0 2023-00-10
-# Esperado: ERRO: mês inválido
-
-# Dia 00 ou dia acima de 31
-ADD data_dia_0 2023-05-00
-# Esperado: ERRO: dia inválido para o mês
-
-ADD data_dia_32 2023-01-32
-# Esperado: ERRO: dia inválido para o mês
-
-# Formatos frouxos sem zeros à esquerda -> Rejeita
-ADD data_frouxa1 2023-1-5
-# Esperado: ERRO: data deve estar no formato AAAA-MM-DD
-
-ADD data_frouxa2 23-01-2000
-# Esperado: ERRO: data deve estar no formato AAAA-MM-DD
+ADD cpf_letters 1234567890a
+# Expected: ERROR: CPF must contain exactly 11 numeric digits without formatting
 
 # ---------------------------------------------------------------------------
-# 4. Robustez do Parser e Tratamento de Erros de Sintaxe
+# 3. Extension: Date Formatter (data.lua)
 # ---------------------------------------------------------------------------
-# Comando desconhecido
-COMANDO_INVALIDO chave valor
-# Esperado: ERRO: comando desconhecido: COMANDO_INVALIDO
+# Valid insertion and formatting on GET (DD/MM/YYYY)
+ADD data_birth_joe 2000-01-23
+# Expected: OK
+GET data_birth_joe
+# Expected: 23/01/2000
 
-# Comandos incompletos (argumentos faltantes)
+ADD data_event 2024-12-31
+# Expected: OK
+GET data_event
+# Expected: 31/12/2024
+
+# Regular leap year (divisible by 4)
+ADD data_leap_2024 2024-02-29
+# Expected: OK
+GET data_leap_2024
+# Expected: 29/02/2024
+
+# Century leap year (divisible by 400)
+ADD data_leap_2000 2000-02-29
+# Expected: OK
+GET data_leap_2000
+# Expected: 29/02/2000
+
+# Non-leap century year (divisible by 100 but not by 400) -> Rejects
+ADD data_non_leap_1900 1900-02-29
+# Expected: ERROR: invalid day for month
+
+ADD data_non_leap_2100 2100-02-29
+# Expected: ERROR: invalid day for month
+
+# Common year (non-leap) -> Rejects Feb 29
+ADD data_common_2023 2023-02-29
+# Expected: ERROR: invalid day for month
+
+# Out-of-range days per month: April has 30 days -> Rejects 31
+ADD data_april_31 2023-04-31
+# Expected: ERROR: invalid day for month
+
+# Out-of-range month (13 and 00)
+ADD data_month_13 2023-13-01
+# Expected: ERROR: invalid month
+
+ADD data_month_0 2023-00-10
+# Expected: ERROR: invalid month
+
+# Day 00 or day above 31
+ADD data_day_0 2023-05-00
+# Expected: ERROR: invalid day for month
+
+ADD data_day_32 2023-01-32
+# Expected: ERROR: invalid day for month
+
+# Loose formats without leading zeros -> Rejects
+ADD data_loose1 2023-1-5
+# Expected: ERROR: date must be in YYYY-MM-DD format
+
+ADD data_loose2 23-01-2000
+# Expected: ERROR: date must be in YYYY-MM-DD format
+
+# ---------------------------------------------------------------------------
+# 4. Parser Robustness and Syntax Error Handling
+# ---------------------------------------------------------------------------
+# Unknown command
+INVALID_COMMAND key value
+# Expected: ERROR: unknown command: INVALID_COMMAND
+
+# Incomplete commands (missing arguments)
 ADD
-# Esperado: ERRO: chave não informada
+# Expected: ERROR: key not provided
 
-ADD chave_sem_valor
-# Esperado: ERRO: valor não informado
+ADD key_without_value
+# Expected: ERROR: value not provided
 
 GET
-# Esperado: ERRO: chave não informada
+# Expected: ERROR: key not provided
 
-# Argumentos excessivos
-GET chave1 argumento_extra
-# Esperado: ERRO: número excessivo de argumentos
+# Excess arguments
+GET key1 extra_argument
+# Expected: ERROR: too many arguments
 
-EXIT argumento_extra
-# Esperado: ERRO: número excessivo de argumentos
+EXIT extra_argument
+# Expected: ERROR: too many arguments
 
-# Encerramento do programa
+# Program termination
 EXIT

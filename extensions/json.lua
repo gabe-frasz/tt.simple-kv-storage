@@ -9,7 +9,7 @@ end
 local function parse_value(s, pos)
     pos = skip_whitespace(s, pos)
     if pos > #s then
-        return nil, "valor esperado não encontrado", pos
+        return nil, "expected value not found", pos
     end
 
     local ch = s:sub(pos, pos)
@@ -30,7 +30,7 @@ local function parse_value(s, pos)
             end_str = end_str + 1
         end
         if end_str > #s then
-            return nil, "string com aspas não fechadas", pos
+            return nil, "unterminated string", pos
         end
         local val = s:sub(start_str, end_str - 1)
         val = val:gsub('\\"', '"'):gsub('\\\\', '\\')
@@ -51,13 +51,13 @@ local function parse_value(s, pos)
         end
     end
 
-    return nil, "tipo de valor inválido ou não suportado (permitidos: string entre aspas, number ou boolean)", pos
+    return nil, "invalid or unsupported value type (allowed: quoted string, number or boolean)", pos
 end
 
 local function parse_json(s)
     local trimmed = trim(s)
     if not (trimmed:sub(1, 1) == "{" and trimmed:sub(-1) == "}") then
-        return nil, "JSON deve iniciar com '{' e terminar com '}'"
+        return nil, "JSON must start with '{' and end with '}'"
     end
 
     local body = trim(trimmed:sub(2, -2))
@@ -74,23 +74,23 @@ local function parse_json(s)
         if pos > len then break end
 
         if body:sub(pos, pos) ~= '"' then
-            return nil, "chave do JSON deve estar entre aspas duplas"
+            return nil, "JSON key must be enclosed in double quotes"
         end
 
         local key_end = body:find('"', pos + 1)
         if not key_end then
-            return nil, "chave do JSON com aspas não fechadas"
+            return nil, "JSON key with unterminated quotes"
         end
 
         local key = body:sub(pos + 1, key_end - 1)
         if key == "" then
-            return nil, "chave do JSON não pode ser vazia"
+            return nil, "JSON key cannot be empty"
         end
         pos = key_end + 1
 
         pos = skip_whitespace(body, pos)
         if pos > len or body:sub(pos, pos) ~= ':' then
-            return nil, "esperado ':' após o nome da chave"
+            return nil, "expected ':' after key name"
         end
         pos = pos + 1
 
@@ -106,7 +106,7 @@ local function parse_json(s)
             if body:sub(pos, pos) == ',' then
                 pos = pos + 1
             else
-                return nil, "esperado ',' ou '}' separando os campos"
+                return nil, "expected ',' or '}' separating fields"
             end
         end
     end
@@ -160,7 +160,7 @@ local function format_table(tbl)
     local sep = "+" .. string.rep("-", max_k + 2) .. "+" .. string.rep("-", max_v + 2) .. "+"
     local lines = {
         sep,
-        string.format("| %-" .. max_k .. "s | %-" .. max_v .. "s |", "CAMPO", "VALOR"),
+        string.format("| %-" .. max_k .. "s | %-" .. max_v .. "s |", "FIELD", "VALUE"),
         sep,
     }
     for _, k in ipairs(keys) do
@@ -183,12 +183,12 @@ local function apply_patch(tbl, patch_cmd)
 
     local field, val_raw = p:match("^[%+@]?@([%w_]+)%s*=%s*(.+)$")
     if not field then
-        return nil, "sintaxe de atualização inválida (use @campo=valor, +@campo=valor ou -@campo)"
+        return nil, "invalid update syntax (use @field=value, +@field=value or -@field)"
     end
 
     local val, err = parse_value(val_raw, 1)
     if val == nil then
-        return nil, "valor inválido no patch: " .. tostring(err)
+        return nil, "invalid value in patch: " .. tostring(err)
     end
 
     tbl[field] = val
@@ -214,7 +214,7 @@ return {
                 if current then
                     local parsed, err = parse_json(current)
                     if not parsed then
-                        error("JSON existente corrompido: " .. tostring(err))
+                        error("corrupted existing JSON: " .. tostring(err))
                     end
                     tbl = parsed
                 end
@@ -224,7 +224,7 @@ return {
                 end
                 ctx.value = encode_json(patched)
             else
-                error("valor deve ser um objeto JSON '{...}' ou um comando de atualização (@campo=valor, +@campo=valor, -@campo)")
+                error("value must be a JSON object '{...}' or an update command (@field=value, +@field=value, -@field)")
             end
         end
     end,

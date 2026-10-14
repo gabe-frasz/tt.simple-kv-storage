@@ -223,7 +223,8 @@ fn extract_clean_message(raw: &str) -> String {
     };
 
     let trimmed = message
-        .strip_prefix("ERRO: ")
+        .strip_prefix("ERROR: ")
+        .or_else(|| message.strip_prefix("ERRO: "))
         .or_else(|| message.strip_prefix("error: "))
         .unwrap_or(message)
         .trim();
@@ -245,40 +246,40 @@ mod tests {
 
     #[test]
     fn test_extract_clean_message() {
-        let msg1 = "[string \"cpf.lua\"]:8: CPF inválido\nstack traceback:\n  [C]: in ?";
-        assert_eq!(extract_clean_message(msg1), "CPF inválido");
+        let msg1 = "[string \"cpf.lua\"]:8: invalid CPF\nstack traceback:\n  [C]: in ?";
+        assert_eq!(extract_clean_message(msg1), "invalid CPF");
 
-        let msg2 = "runtime error: [string \"cpf.lua\"]:12: Dígito incorreto";
-        assert_eq!(extract_clean_message(msg2), "Dígito incorreto");
+        let msg2 = "runtime error: [string \"cpf.lua\"]:12: Incorrect digit";
+        assert_eq!(extract_clean_message(msg2), "Incorrect digit");
 
-        let msg3 = "extensions/data.lua:5: Mensagem sem string prefix";
-        assert_eq!(extract_clean_message(msg3), "Mensagem sem string prefix");
+        let msg3 = "extensions/data.lua:5: Message without string prefix";
+        assert_eq!(extract_clean_message(msg3), "Message without string prefix");
 
-        let msg4 = "Erro simples sem prefixo";
-        assert_eq!(extract_clean_message(msg4), "Erro simples sem prefixo");
+        let msg4 = "Simple error without prefix";
+        assert_eq!(extract_clean_message(msg4), "Simple error without prefix");
 
-        let msg5 = "runtime error: ERRO: já prefixado";
-        assert_eq!(extract_clean_message(msg5), "já prefixado");
+        let msg5 = "runtime error: ERROR: already prefixed";
+        assert_eq!(extract_clean_message(msg5), "already prefixed");
     }
 
     #[test]
     #[allow(clippy::arc_with_non_send_sync)]
     fn test_clean_lua_error_types() {
-        let rt_err = mlua::Error::RuntimeError("[string \"test.lua\"]:1: falha crítica".to_string());
+        let rt_err = mlua::Error::RuntimeError("[string \"test.lua\"]:1: critical failure".to_string());
         assert_eq!(
             clean_lua_error(&rt_err),
-            DatabaseError::Extension("falha crítica".to_string())
+            DatabaseError::Extension("critical failure".to_string())
         );
 
         let cb_err = mlua::Error::CallbackError {
             traceback: "stack traceback: ...".to_string(),
             cause: std::sync::Arc::new(mlua::Error::RuntimeError(
-                "[string \"test.lua\"]:2: falha interna".to_string(),
+                "[string \"test.lua\"]:2: internal failure".to_string(),
             )),
         };
         assert_eq!(
             clean_lua_error(&cb_err),
-            DatabaseError::Extension("falha interna".to_string())
+            DatabaseError::Extension("internal failure".to_string())
         );
     }
 
@@ -460,7 +461,7 @@ mod tests {
         );
         assert_eq!(
             post_get1.unwrap(),
-            Some("+--------+---------+\n| CAMPO  | VALOR   |\n+--------+---------+\n| active | true    |\n| age    | 30      |\n| name   | \"Alice\" |\n+--------+---------+".to_string())
+            Some("+--------+---------+\n| FIELD  | VALUE   |\n+--------+---------+\n| active | true    |\n| age    | 30      |\n| name   | \"Alice\" |\n+--------+---------+".to_string())
         );
 
         // 2. Patch field: @age=31
@@ -519,10 +520,10 @@ mod tests {
             &storage,
             "ADD",
             Some("json_new"),
-            Some("+@status=\"ativo\""),
+            Some("+@status=\"active\""),
         );
         assert!(ok_new.is_ok());
-        assert_eq!(ok_new.unwrap().unwrap(), "{\"status\":\"ativo\"}");
+        assert_eq!(ok_new.unwrap().unwrap(), "{\"status\":\"active\"}");
 
         // 7. Invalid JSON: unquoted key
         let err_bad_json = ext_manager.trigger_pre_hook(
